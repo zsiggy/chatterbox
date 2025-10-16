@@ -1,0 +1,216 @@
+/* Custom CSS for Simple Messaging App */
+
+/* ===== BASE STYLES ===== */
+
+/* This ensures consistent box-sizing across all elements */
+* {
+    box-sizing: border-box;
+}
+
+/* ===== ANIMATIONS ===== */
+
+/* Fade in animation for smooth transitions */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide in animation for forms */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Apply fade in animation to elements */
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Apply slide in animation to forms */
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Smooth transitions for hover effects */
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+
+/* ===== MESSAGE STYLES ===== */
+
+/* Style for individual message cards */
+.message-card {
+    border-left: 4px solid #3b82f6; /* Blue left border */
+    transition: all 0.2s ease-in-out;
+}
+
+.message-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for unread messages */
+.message-unread {
+    border-left-color: #ef4444; /* Red border for unread */
+    background-color: #fef2f2; /* Light red background */
+}
+
+/* ===== FORM STYLES ===== */
+
+/* Focus styles for form inputs */
+.form-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Error state for form inputs */
+.form-input-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* ===== ALERT STYLES ===== */
+
+/* Base alert styling */
+.alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Success alert (green) */
+.alert-success {
+    background-color: #dcfce7;
+    border: 1px solid #16a34a;
+    color: #15803d;
+}
+
+/* Error alert (red) */
+.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #ef4444;
+    color: #dc2626;
+}
+
+/* Warning alert (yellow) */
+.alert-warning {
+    background-color: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #d97706;
+}
+
+/* Info alert (blue) */
+.alert-info {
+    background-color: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1d4ed8;
+}
+
+/* ===== LOADING STATES ===== */
+
+/* Loading spinner */
+.loading-spinner {
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+    /* Stack navigation vertically on mobile */
+    .nav-mobile {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* Full width buttons on mobile */
+    .btn-mobile {
+        width: 100%;
+    }
+    
+    /* Reduce padding on mobile */
+    .mobile-padding {
+        padding: 1rem;
+    }
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+/* Focus indicators for keyboard navigation */
+.focus-visible:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===== CUSTOM COMPONENTS ===== */
+
+/* Message timestamp styling */
+.message-timestamp {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Message subject styling */
+.message-subject {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+/* Message body styling */
+.message-body {
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+/* Empty state styling */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
