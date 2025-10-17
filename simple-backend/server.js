@@ -1,17 +1,8 @@
-// This is our simple server file
-// We're using Express.js which is a framework that makes it easy to create web servers
-// This server adds authentication (sessions) on top of your existing messaging API.
-// Explanations are placed where new concepts first appear.
-
-// 1) Import dependencies:
-// 'const' declares a binding you don't intend to reassign.
 const express = require('express');
-const session = require('express-session'); // Session middleware for login persistence
-const bcrypt = require('bcrypt'); // Secure password hashing
-const cors = require('cors'); // Allow frontend to call backend in dev
+const session = require('express-session');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
 
-// Import database helpers. We will add user helpers (createUser, getUserByUsername)
-// and keep your existing message helpers.
 const {
   initializeDatabase,
   addMessage,
@@ -21,78 +12,110 @@ const {
   getUserByUsername
 } = require('./database');
 
-// Create the Express app instance and set a port to listen on.
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// This line tells Express to understand JSON data that comes from the frontend
-// 2) Body parser: parse incoming JSON so 'req.body' is populated.
+// CRITICAL: Parse JSON before other middleware
 app.use(express.json());
 
-// Allow the frontend (vite, default 5173to talk to this backend with cookies
+// FIXED: Proper CORS configuration for production
 const allowedOrigins = [
-  'http://localhost:5173', // Development
-  'http://localhost:3000', // Local development alternative
-  'file://', // Allow local file access for simple-frontend
-  'https://chatterbox-dance.vercel.app' // Vercel URL
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://chatterbox-dance.vercel.app',
+  'https://chatterbox-dance.vercel.app/', // with trailing slash
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin is in allowed list
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
       callback(null, true);
     } else {
+      console.log('Blocked by CORS:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true, // CRITICAL: Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
-// 3) Session middleware: stores a server-managed session per browser via a cookie.
-// - secret: used to sign the cookie (use a strong, env-based secret in production)
-// - resave/saveUninitialized: recommended values to avoid unnecessary session writes
-// - cookie: httpOnly helps against XSS, maxAge controls how long you stay logged in
+// FIXED: Session configuration for production
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-me-in-production',
   resave: false,
   saveUninitialized: false,
+  name: 'chatterbox.sid', // Custom cookie name
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: 'lax', // Allow cross-origin cookies in most cases
-    secure: false // Allow cookies over HTTP for debugging
-  }
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // CRITICAL for cross-domain
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+  },
+  proxy: true // CRITICAL for Heroku
 }));
 
-// 4) Small auth guard. It allows access only if the user has a session.
+// Trust proxy (CRITICAL for Heroku)
+app.set('trust proxy', 1);
+
+// Auth middleware
 function requireAuth(req, res, next) {
-  if (req.session && req.session.username) return next();
+  console.log('Auth check - Session:', req.session);
+  console.log('Auth check - Username:', req.session?.username);
+  
+  if (req.session && req.session.username) {
+    return next();
+  }
   return res.status(401).json({ error: 'Not authenticated' });
 }
 
-// 5) Initialize the database at startup. This ensures tables exist before requests hit.
-initializeDatabase().then(() => {
-  console.log('Database ready!');
-}).catch(err => {
-  console.error('Database initialization failed:', err);
+// FIXED: Initialize database BEFORE starting server
+let dbReady = false;
+
+initializeDatabase()
+  .then(() => {
+    console.log('✓ Database initialized successfully');
+    dbReady = true;
+  })
+  .catch(err => {
+    console.error('✗ Database initialization failed:', err);
+    process.exit(1);
+  });
+
+// Middleware to check if DB is ready
+app.use((req, res, next) => {
+  if (!dbReady && req.path !== '/') {
+    return res.status(503).json({ error: 'Service temporarily unavailable' });
+  }
+  next();
 });
 
-// 6) Health route for quick checks.
+// Health check
 app.get('/', (req, res) => {
-  res.send('Messaging app backend with SQLite + sessions');
+  res.json({ 
+    status: 'ok',
+    message: 'Chatterbox API is running',
+    dbReady,
+    session: req.session ? 'active' : 'none'
+  });
 });
 
-// 7) AUTH ROUTES
+// AUTH ROUTES
 
-// POST /signup: register a new user
-// Flow: validate -> check exists -> hash password -> create -> start session
+// POST /signup
 app.post('/signup', async (req, res) => {
+  console.log('Signup request received:', { username: req.body?.username });
+  
   try {
     const { username, password } = req.body;
 
+    // Validation
     if (!username || username.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters' });
     }
@@ -100,25 +123,31 @@ app.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
+    // Check if user exists
     const existing = await getUserByUsername(username);
     if (existing) {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
-    // bcrypt.hash(password, saltRounds) securely hashes the password.
+    // Create user
     const hash = await bcrypt.hash(password, 12);
     const user = await createUser(username, hash);
 
-    // Create a session so subsequent requests know who you are without re-login.
+    // FIXED: Properly set session and save
     req.session.username = user.username;
     
-    // Save the session before sending response
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         return res.status(500).json({ error: 'Failed to create session' });
       }
-      res.status(201).json({ message: 'Signup successful', user: { username: user.username } });
+      
+      console.log('Signup successful, session created:', req.session);
+      res.status(201).json({ 
+        message: 'Signup successful', 
+        user: { username: user.username },
+        authenticated: true
+      });
     });
   } catch (err) {
     console.error('Signup error:', err);
@@ -126,25 +155,38 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-// POST /login: start a session for an existing user
+// POST /login
 app.post('/login', async (req, res) => {
+  console.log('Login request received:', { username: req.body?.username });
+  
   try {
     const { username, password } = req.body;
+    
     const user = await getUserByUsername(username);
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
+    // FIXED: Properly set session and save
     req.session.username = user.username;
     
-    // Save the session before sending response
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         return res.status(500).json({ error: 'Failed to create session' });
       }
-      res.json({ message: 'Login successful', user: { username: user.username } });
+      
+      console.log('Login successful, session created:', req.session);
+      res.json({ 
+        message: 'Login successful', 
+        user: { username: user.username },
+        authenticated: true
+      });
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -152,53 +194,66 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// POST /logout: destroy the current session
+// POST /logout
 app.post('/logout', (req, res) => {
-  req.session.destroy(() => {
+  console.log('Logout request received');
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+    }
     res.json({ message: 'Logged out' });
   });
 });
 
-// GET /me: check who is logged in
+// GET /me - Check authentication status
 app.get('/me', (req, res) => {
+  console.log('Auth status check - Session:', req.session);
+  
   if (req.session && req.session.username) {
-    return res.json({ authenticated: true, user: { username: req.session.username } });
+    return res.json({ 
+      authenticated: true, 
+      user: { username: req.session.username } 
+    });
   }
   return res.json({ authenticated: false });
 });
 
-// List users for composing messages (auth required)
+// GET /users - List all users except current user
 app.get('/users', requireAuth, async (req, res) => {
   try {
-    // Simple list of usernames excluding the requester
-    const sql = 'SELECT username FROM users WHERE username != ? ORDER BY username ASC';
     const sqlite3 = require('sqlite3').verbose();
-    // Reuse the same db instance from database.js by requiring it and accessing db is not exported.
-    // Instead, query via helper we don't have; do a quick inline open for simplicity in simple-backend.
     const db = new sqlite3.Database('./message.db');
+    
+    const sql = 'SELECT username FROM users WHERE username != ? ORDER BY username ASC';
+    
     db.all(sql, [req.session.username], (err, rows) => {
       db.close();
+      
       if (err) {
+        console.error('Error loading users:', err);
         return res.status(500).json({ error: 'Failed to load users' });
       }
+      
       res.json({ users: rows.map(r => r.username) });
     });
   } catch (err) {
+    console.error('Error in /users:', err);
     res.status(500).json({ error: 'Failed to load users' });
   }
 });
 
-// 8) MESSAGE ROUTES (now session-aware). We use 'requireAuth' and the session username.
+// MESSAGE ROUTES
 
-// Send a message from the logged-in user to another username
+// POST /api/send-message
 app.post('/api/send-message', requireAuth, async (req, res) => {
   try {
     const { toUser, subject, body } = req.body;
-    const fromUser = req.session.username; // source of truth: session
+    const fromUser = req.session.username;
 
     if (!toUser || !subject || !body) {
       return res.status(400).json({ error: 'toUser, subject, and body are required' });
     }
+    
     if (toUser === fromUser) {
       return res.status(400).json({ error: 'Cannot send message to yourself' });
     }
@@ -206,23 +261,23 @@ app.post('/api/send-message', requireAuth, async (req, res) => {
     const result = await addMessage(fromUser, toUser, subject, body);
     res.status(201).json({ message: 'Message sent', id: result.id });
   } catch (error) {
-    console.error('Error sending message: ', error);
-    res.status(500).json({ error: 'Failed to send message.' });
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
   }
 });
 
-// Inbox for the logged-in user
-app.get('/api/messages/inbox', requireAuth, async (req,res) => {
+// GET /api/messages/inbox
+app.get('/api/messages/inbox', requireAuth, async (req, res) => {
   try {
     const messages = await getMessagesForUser(req.session.username);
     res.json({ success: true, messages });
-  } catch(error) {
-    console.error('Error getting messages: ', error);
+  } catch (error) {
+    console.error('Error getting inbox:', error);
     res.status(500).json({ success: false, message: 'Failed to get messages' });
   }
 });
 
-// Sent items for the logged-in user
+// GET /api/messages/sent
 app.get('/api/messages/sent', requireAuth, async (req, res) => {
   try {
     const messages = await getMessagesFromUser(req.session.username);
@@ -233,7 +288,9 @@ app.get('/api/messages/sent', requireAuth, async (req, res) => {
   }
 });
 
-// Start the HTTP server and listen on the chosen port.
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`!Server running on port ${PORT}`);
+  console.log(`!Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`!Secure cookies: ${process.env.NODE_ENV === 'production'}`);
 });
