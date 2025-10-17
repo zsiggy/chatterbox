@@ -6,7 +6,7 @@
 // Base URL for our backend API
 // This tells JavaScript where to send requests
 //const API_BASE_URL = 'http://localhost:3002'; -> for when running on local machine if ever
-const API_BASE_URL = 'https://chatterbox-dance.vercel.app/';
+const API_BASE_URL = 'https://your-chatterbox-api-c610f4eea4e1.herokuapp.com';
 
 // ===== UTILITY FUNCTIONS =====
 
