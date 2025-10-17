@@ -34,7 +34,7 @@ const allowedOrigins = [
   'http://localhost:5173', // Development
   'http://localhost:3000', // Local development alternative
   'file://', // Allow local file access for simple-frontend
-  'https://chatterbox-dance.vercel.app/' // Vercel URL
+  'https://chatterbox-dance.vercel.app' // Vercel URL
 ];
 
 app.use(cors({
