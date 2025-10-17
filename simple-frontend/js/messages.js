@@ -322,9 +322,9 @@ function createMessageCard(message, type) {
             <div class="mt-3 pt-3 border-t border-gray-100">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-gray-500">Message ID: ${message.id}</span>
-                    <button onclick="toggleMessageDetails('${messageId}')" 
+                    <button onclick="replyToMessage('${messageId}', '${escapeHtml(otherUser)}')" 
                             class="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                        Show Details
+                        Reply
                     </button>
                 </div>
             </div>
@@ -406,16 +406,28 @@ function escapeHtml(text) {
 }
 
 /**
- * Toggles the visibility of message details
+ * Handles reply to a message
  * @param {string} messageId - The ID of the message card
+ * @param {string} recipient - The username to reply to
  */
-function toggleMessageDetails(messageId) {
-    const messageCard = document.getElementById(messageId);
-    const detailsButton = messageCard.querySelector('button');
+function replyToMessage(messageId, recipient) {
+    // Switch to compose tab
+    window.showTab('compose');
     
-    // This is a placeholder for future enhancement
-    // You could add more detailed information here
-    window.showAlert('Message details feature coming soon!', 'info');
+    // Pre-fill the recipient field
+    const toUserField = document.getElementById('to-user');
+    if (toUserField) {
+        toUserField.value = recipient;
+    }
+    
+    // Focus on the subject field for better UX
+    const subjectField = document.getElementById('message-subject');
+    if (subjectField) {
+        subjectField.focus();
+    }
+    
+    // Show a brief confirmation
+    window.showAlert(`Reply to ${recipient}`, 'info');
 }
 
 // ===== EVENT LISTENERS =====
@@ -474,7 +486,7 @@ window.sendMessage = sendMessage;
 window.loadInboxMessages = loadInboxMessages;
 window.loadSentMessages = loadSentMessages;
 window.loadUsers = loadUsers;
-window.toggleMessageDetails = toggleMessageDetails;
+window.replyToMessage = replyToMessage;
 
 // Initialize when the page loads
 document.addEventListener('DOMContentLoaded', initializeMessages);
