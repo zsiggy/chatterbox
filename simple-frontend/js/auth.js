@@ -192,15 +192,26 @@ async function login(username, password) {
         showAlert('Login successful!', 'success');
         showLoggedInState(username);
         
-        // Trigger app initialization (this will be called from app.js)
-        if (window.initializeApp) {
-            window.initializeApp();
-        }
+        // Wait a moment for session cookie to be processed, then initialize app
+        setTimeout(async () => {
+            // Verify session is working before initializing app
+            const authCheck = await checkAuthStatus();
+            if (authCheck && window.initializeApp) {
+                window.initializeApp();
+            }
+        }, 100);
         
     } catch (error) {
-        // Handle login errors
+        // Handle login errors with specific messages
         console.error('Login failed:', error);
-        showAlert(error.message || 'Login failed. Please try again.', 'error');
+        
+        if (error.message === 'Invalid credentials') {
+            showAlert('Invalid username or password. Please check your credentials and try again.', 'error');
+        } else if (error.message.includes('fetch')) {
+            showAlert('Unable to connect to server. Please check your internet connection and try again.', 'error');
+        } else {
+            showAlert(error.message || 'Login failed. Please try again.', 'error');
+        }
     }
 }
 
@@ -223,15 +234,30 @@ async function signup(username, password) {
         showAlert('Account created successfully! You are now logged in.', 'success');
         showLoggedInState(username);
         
-        // Trigger app initialization
-        if (window.initializeApp) {
-            window.initializeApp();
-        }
+        // Wait a moment for session cookie to be processed, then initialize app
+        setTimeout(async () => {
+            // Verify session is working before initializing app
+            const authCheck = await checkAuthStatus();
+            if (authCheck && window.initializeApp) {
+                window.initializeApp();
+            }
+        }, 100);
         
     } catch (error) {
-        // Handle signup errors
+        // Handle signup errors with specific messages
         console.error('Signup failed:', error);
-        showAlert(error.message || 'Signup failed. Please try again.', 'error');
+        
+        if (error.message === 'Username already taken') {
+            showAlert('This username is already taken. Please choose a different username.', 'error');
+        } else if (error.message === 'Username must be at least 3 characters') {
+            showAlert('Username must be at least 3 characters long.', 'error');
+        } else if (error.message === 'Password must be at least 6 characters') {
+            showAlert('Password must be at least 6 characters long.', 'error');
+        } else if (error.message.includes('fetch')) {
+            showAlert('Unable to connect to server. Please check your internet connection and try again.', 'error');
+        } else {
+            showAlert(error.message || 'Signup failed. Please try again.', 'error');
+        }
     }
 }
 

@@ -111,7 +111,15 @@ app.post('/signup', async (req, res) => {
 
     // Create a session so subsequent requests know who you are without re-login.
     req.session.username = user.username;
-    res.status(201).json({ message: 'Signup successful', user: { username: user.username } });
+    
+    // Save the session before sending response
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Failed to create session' });
+      }
+      res.status(201).json({ message: 'Signup successful', user: { username: user.username } });
+    });
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -129,7 +137,15 @@ app.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
     req.session.username = user.username;
-    res.json({ message: 'Login successful', user: { username: user.username } });
+    
+    // Save the session before sending response
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Failed to create session' });
+      }
+      res.json({ message: 'Login successful', user: { username: user.username } });
+    });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
