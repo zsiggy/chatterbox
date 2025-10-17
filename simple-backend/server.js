@@ -63,7 +63,7 @@ app.use(session({
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production' // Use secure cookies in production
+    secure: false // Temporarily disable secure cookies to debug
   }
 }));
 
