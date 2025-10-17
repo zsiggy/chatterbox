@@ -5,7 +5,8 @@
 
 // Base URL for our backend API
 // This tells JavaScript where to send requests
-const API_BASE_URL = 'http://localhost:3002';
+//const API_BASE_URL = 'http://localhost:3002'; -> for when running on local machine if ever
+const API_BASE_URL = 'https://chatterbox-dance.vercel.app/';
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -50,6 +51,8 @@ function showAlert(message, type = 'info') {
  * @returns {Promise} - The response from the server
  */
 async function apiRequest(url, options = {}) {
+    console.log('Making API request to:', `${API_BASE_URL}${url}`);
+    
     // Default options for all requests
     const defaultOptions = {
         headers: {
@@ -60,13 +63,16 @@ async function apiRequest(url, options = {}) {
     
     // Merge default options with provided options
     const requestOptions = { ...defaultOptions, ...options };
+    console.log('Request options:', requestOptions);
     
     try {
         // Make the request
         const response = await fetch(`${API_BASE_URL}${url}`, requestOptions);
+        console.log('Response status:', response.status);
         
         // Parse the JSON response
         const data = await response.json();
+        console.log('Response data:', data);
         
         // If the response is not ok (status 200-299), throw an error
         if (!response.ok) {
@@ -259,15 +265,21 @@ async function logout() {
  */
 async function checkAuthStatus() {
     try {
+        console.log('Checking auth status...');
+        console.log('API_BASE_URL:', API_BASE_URL);
+        
         // Ask the backend if we're logged in
         const response = await apiRequest('/me');
+        console.log('Auth response:', response);
         
         if (response.authenticated && response.user) {
             // User is logged in, show the logged in state
+            console.log('User is authenticated:', response.user.username);
             showLoggedInState(response.user.username);
             return true;
         } else {
             // User is not logged in
+            console.log('User is not authenticated');
             showLoggedOutState();
             return false;
         }
@@ -356,11 +368,16 @@ function setupAuthEventListeners() {
  * This is called when the page loads
  */
 async function initializeAuth() {
+    console.log('Initializing authentication system...');
+    
     // Set up event listeners
     setupAuthEventListeners();
+    console.log('Auth event listeners set up');
     
     // Check if user is already logged in
+    console.log('Checking auth status...');
     await checkAuthStatus();
+    console.log('Auth initialization complete');
 }
 
 // Make functions available globally (so other files can use them)
