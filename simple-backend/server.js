@@ -23,15 +23,31 @@ const {
 
 // Create the Express app instance and set a port to listen on.
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // This line tells Express to understand JSON data that comes from the frontend
 // 2) Body parser: parse incoming JSON so 'req.body' is populated.
 app.use(express.json());
 
-// Allow the Vite frontend (default 5173) to talk to this backend with cookies
+// Allow the frontend (vite, default 5173to talk to this backend with cookies
+const allowedOrigins = [
+  'http://localhost:5173', // Development
+  'http://localhost:3000', // Local development alternative
+  'file://', // Allow local file access for simple-frontend
+  'https://chatterbox-dance.vercel.app/' // Vercel URL
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -40,13 +56,14 @@ app.use(cors({
 // - resave/saveUninitialized: recommended values to avoid unnecessary session writes
 // - cookie: httpOnly helps against XSS, maxAge controls how long you stay logged in
 app.use(session({
-  secret: 'dev-secret-change-me',
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: 'lax'
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production' // Use secure cookies in production
   }
 }));
 
