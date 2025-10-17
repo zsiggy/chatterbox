@@ -285,16 +285,16 @@ function displaySentMessages(messages) {
 
 /**
  * Creates HTML for a single message card
- * @param {Object} message - Message object with id, from_user, to_user, subject, body, created_at
+ * @param {Object} message - Message object with id, fromUser, toUser, subject, body, createdAt
  * @param {string} type - Either 'inbox' or 'sent'
  * @returns {string} - HTML string for the message card
  */
 function createMessageCard(message, type) {
     // Format the timestamp
-    const timestamp = formatTimestamp(message.created_at);
+    const timestamp = formatTimestamp(message.createdAt);
     
     // Determine the sender/receiver based on message type
-    const otherUser = type === 'inbox' ? message.from_user : message.to_user;
+    const otherUser = type === 'inbox' ? message.fromUser : message.toUser;
     const userLabel = type === 'inbox' ? 'From' : 'To';
     
     // Create a unique ID for this message card
