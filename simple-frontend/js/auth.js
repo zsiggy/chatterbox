@@ -150,12 +150,11 @@ async function login(username, password) {
       showAlert('Login successful!', 'success');
       showLoggedInState(username);
       
-      // FIXED: Wait a moment then initialize app
-      setTimeout(() => {
-        if (window.initializeApp) {
-          window.initializeApp();
-        }
-      }, 100);
+      // Set global authentication flag
+      window.isAuthenticated = true;
+      
+      // Verify session is working before initializing app
+      await verifySessionAndInitialize();
       
       return true;
     } else {
@@ -193,12 +192,11 @@ async function signup(username, password) {
       showAlert('Account created successfully! You are now logged in.', 'success');
       showLoggedInState(username);
       
-      // FIXED: Wait a moment then initialize app
-      setTimeout(() => {
-        if (window.initializeApp) {
-          window.initializeApp();
-        }
-      }, 100);
+      // Set global authentication flag
+      window.isAuthenticated = true;
+      
+      // Verify session is working before initializing app
+      await verifySessionAndInitialize();
       
       return true;
     } else {
@@ -226,6 +224,9 @@ async function signup(username, password) {
 
 async function logout() {
   console.log('Attempting logout');
+  
+  // Clear global authentication flag
+  window.isAuthenticated = false;
   
   try {
     await apiRequest('/logout', {
@@ -255,6 +256,9 @@ async function checkAuthStatus() {
       console.log('User is authenticated:', response.user.username);
       showLoggedInState(response.user.username);
       
+      // Set global authentication flag
+      window.isAuthenticated = true;
+      
       // Initialize app after confirming auth
       setTimeout(() => {
         if (window.initializeApp) {
@@ -265,12 +269,14 @@ async function checkAuthStatus() {
       return true;
     } else {
       console.log('User is not authenticated');
+      window.isAuthenticated = false;
       showLoggedOutState();
       return false;
     }
     
   } catch (error) {
     console.error('Auth check failed:', error);
+    window.isAuthenticated = false;
     showLoggedOutState();
     return false;
   }
@@ -348,10 +354,49 @@ async function initializeAuth() {
   console.log('Auth initialization complete');
 }
 
+// Session verification function
+async function verifySessionAndInitialize() {
+  try {
+    console.log('Verifying session before app initialization...');
+    
+    // Test the session by calling /me endpoint
+    const response = await apiRequest('/me');
+    
+    if (response.authenticated && response.user) {
+      console.log('Session verified successfully');
+      
+      // Initialize app after confirming session works
+      setTimeout(() => {
+        if (window.initializeApp) {
+          window.initializeApp();
+        }
+      }, 100);
+      
+      return true;
+    } else {
+      throw new Error('Session verification failed');
+    }
+    
+  } catch (error) {
+    console.error('Session verification failed:', error);
+    window.isAuthenticated = false;
+    
+    showAlert('Session verification failed. Please log in again.', 'error');
+    
+    // Return to login state
+    setTimeout(() => {
+      showLoggedOutState();
+    }, 1500);
+    
+    return false;
+  }
+}
+
 // Export functions globally
 window.login = login;
 window.logout = logout;
 window.checkAuthStatus = checkAuthStatus;
+window.verifySessionAndInitialize = verifySessionAndInitialize;
 window.showAlert = showAlert;
 window.apiRequest = apiRequest;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const FileStore = require('session-file-store')(session); // for file-based session storage
 
 const {
   initializeDatabase,
@@ -47,6 +48,10 @@ app.use(cors({
 
 // FIXED: Session configuration for production
 app.use(session({
+  store: new FileStore({
+    path: './sessions', // Store session files in ./sessions directory
+    ttl: 7 * 24 * 60 * 60 // 7 days in seconds
+  }),
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me-in-production',
   resave: false,
   saveUninitialized: false,
@@ -54,6 +59,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // CRITICAL for cross-domain
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'

@@ -9,6 +9,9 @@ let currentTab = 'inbox';
 // Track if the app has been initialized
 let appInitialized = false;
 
+// Track authentication state globally
+//window.isAuthenticated = false;
+
 // ===== TAB NAVIGATION =====
 
 /**
@@ -139,6 +142,7 @@ async function initializeApp() {
 function resetApp() {
     appInitialized = false;
     currentTab = 'inbox';
+    window.isAuthenticated = false; // Clear authentication flag
     
     // Clear any loaded content
     document.getElementById('inbox-messages').innerHTML = '';
@@ -209,18 +213,23 @@ function setupKeyboardShortcuts() {
  * This helps users see new messages without manually refreshing
  */
 function setupAutoRefresh() {
-    // Refresh inbox every 30 seconds if user is on inbox tab
+    // Refresh inbox every 30 seconds if user is on inbox tab and authenticated
     setInterval(() => {
-        if (appInitialized && currentTab === 'inbox') {
+        //if (appInitialized && currentTab === 'inbox') {
+        if (appInitialized && currentTab === 'inbox' && window.isAuthenticated) {
             // Silently refresh inbox (don't show loading spinner)
             window.loadInboxMessages().catch(error => {
                 console.error('Auto-refresh failed:', error);
+                // If we get 401, set authentication flag to false
+                if (error.message.includes('Not authenticated')) {
+                    window.isAuthenticated = false;
+                }
                 // Don't show error to user for auto-refresh failures
             });
         }
     }, 30000); // 30 seconds
     
-    console.log('Auto-refresh set up');
+    console.log('Auto-refresh set up with auth checks');
 }
 
 // ===== MESSAGE NOTIFICATIONS =====
@@ -293,7 +302,7 @@ function showWelcomeMessage() {
     const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
     
     if (!hasSeenWelcome) {
-        window.showAlert('Welcome to Simple Messaging! Click "Compose" to send your first message.', 'info');
+        window.showAlert('Welcome to your Chatterbox! Login or signup to send your first message.', 'info');
         localStorage.setItem('hasSeenWelcome', 'true');
     }
 }
@@ -302,12 +311,16 @@ function showWelcomeMessage() {
 
 /**
  * Handles window focus events (when user switches back to the tab)
+ * DISABLED: This was causing 401 error loops when session cookies weren't working
  */
 function handleWindowFocus() {
-    if (appInitialized) {
+    //    if (appInitialized) {
         // Refresh current tab when user returns to the app
-        refreshCurrentTab();
-    }
+       // refreshCurrentTab();
+    //}
+    // DISABLED: Removed auto-refresh on window focus to prevent 401 error loops
+    // The 30-second interval auto-refresh is sufficient for keeping data fresh
+    console.log('Window focus detected - auto-refresh disabled to prevent auth loops');
 }
 
 /**

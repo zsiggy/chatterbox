@@ -88,15 +88,33 @@ async function loadInboxMessages() {
     } catch (error) {
         console.error('Error loading inbox messages:', error);
         
-        // Show error state
+        // Check if it's an authentication error
+        if (error.message.includes('Not authenticated')) {
+            console.log('Authentication failed - logging out user');
+            window.isAuthenticated = false;
+            window.showAlert('Your session has expired. Please log in again.', 'error');
+            
+            // Clear the inbox and logout
+            const inboxContainer = document.getElementById('inbox-messages');
+            inboxContainer.innerHTML = '';
+            
+            // Call logout to clear session and return to login screen
+            setTimeout(() => {
+                window.logout();
+            }, 1500);
+            
+            throw error;
+        }
+        
+        // Show error state for non-auth errors
         const inboxContainer = document.getElementById('inbox-messages');
         inboxContainer.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Error loading messages</h3>
-                <p class="text-gray-600">Failed to load your messages. Please try again.</p>
-                <button onclick="loadInboxMessages()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-                    Try Again
+                <p class="text-gray-600">Failed to load your messages. Please refresh the page.</p>
+                <button onclick="window.location.reload()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                    Refresh Page
                 </button>
             </div>
         `;
@@ -141,15 +159,33 @@ async function loadSentMessages() {
     } catch (error) {
         console.error('Error loading sent messages:', error);
         
-        // Show error state
+        // Check if it's an authentication error
+        if (error.message.includes('Not authenticated')) {
+            console.log('Authentication failed - logging out user');
+            window.isAuthenticated = false;
+            window.showAlert('Your session has expired. Please log in again.', 'error');
+            
+            // Clear the sent messages and logout
+            const sentContainer = document.getElementById('sent-messages');
+            sentContainer.innerHTML = '';
+            
+            // Call logout to clear session and return to login screen
+            setTimeout(() => {
+                window.logout();
+            }, 1500);
+            
+            throw error;
+        }
+        
+        // Show error state for non-auth errors
         const sentContainer = document.getElementById('sent-messages');
         sentContainer.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Error loading sent messages</h3>
-                <p class="text-gray-600">Failed to load your sent messages. Please try again.</p>
-                <button onclick="loadSentMessages()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-                    Try Again
+                <p class="text-gray-600">Failed to load your sent messages. Please refresh the page.</p>
+                <button onclick="window.location.reload()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                    Refresh Page
                 </button>
             </div>
         `;
@@ -179,6 +215,21 @@ async function loadUsers() {
         
     } catch (error) {
         console.error('Error loading users:', error);
+        
+        // Check if it's an authentication error
+        if (error.message.includes('Not authenticated')) {
+            console.log('Authentication failed during user list load - logging out user');
+            window.isAuthenticated = false;
+            window.showAlert('Your session has expired. Please log in again.', 'error');
+            
+            // Call logout to clear session and return to login screen
+            setTimeout(() => {
+                window.logout();
+            }, 1500);
+            
+            throw error;
+        }
+        
         window.showAlert('Failed to load users list.', 'error');
         throw error;
     }
