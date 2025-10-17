@@ -5,6 +5,7 @@ const cors = require('cors');
 const FileStore = require('session-file-store')(session); // for file-based session storage
 
 const {
+  prisma,
   initializeDatabase,
   addMessage,
   getMessagesForUser,
@@ -173,7 +174,7 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash);
+    const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -227,23 +228,23 @@ app.get('/me', (req, res) => {
 // GET /users - List all users except current user
 app.get('/users', requireAuth, async (req, res) => {
   try {
-    const sqlite3 = require('sqlite3').verbose();
-    const db = new sqlite3.Database('./message.db');
-    
-    const sql = 'SELECT username FROM users WHERE username != ? ORDER BY username ASC';
-    
-    db.all(sql, [req.session.username], (err, rows) => {
-      db.close();
-      
-      if (err) {
-        console.error('Error loading users:', err);
-        return res.status(500).json({ error: 'Failed to load users' });
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          not: req.session.username
+        }
+      },
+      select: {
+        username: true
+      },
+      orderBy: {
+        username: 'asc'
       }
-      
-      res.json({ users: rows.map(r => r.username) });
     });
+    
+    res.json({ users: users.map(u => u.username) });
   } catch (err) {
-    console.error('Error in /users:', err);
+    console.error('Error loading users:', err);
     res.status(500).json({ error: 'Failed to load users' });
   }
 });

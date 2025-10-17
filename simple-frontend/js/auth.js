@@ -2,7 +2,7 @@
 
 // FIXED: Use environment variable or production URL
 const API_BASE_URL = 'https://your-chatterbox-api-c610f4eea4e1.herokuapp.com';
-// const API_BASE_URL = 'http://localhost:3002';
+//const API_BASE_URL = 'http://localhost:3002';
 
 // UTILITY FUNCTIONS
 
