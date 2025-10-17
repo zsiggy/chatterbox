@@ -2,7 +2,8 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
-const FileStore = require('session-file-store')(session); // for file-based session storage
+// Note: FileStore doesn't work on Heroku due to ephemeral filesystem
+// Using MemoryStore for Heroku deployment
 
 const {
   prisma,
@@ -48,11 +49,9 @@ app.use(cors({
 }));
 
 // FIXED: Session configuration for production
+// Using MemoryStore for Heroku (FileStore doesn't work due to ephemeral filesystem)
 app.use(session({
-  store: new FileStore({
-    path: './sessions', // Store session files in ./sessions directory
-    ttl: 7 * 24 * 60 * 60 // 7 days in seconds
-  }),
+  // No store specified = uses MemoryStore by default
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me-in-production',
   resave: false,
   saveUninitialized: false,
